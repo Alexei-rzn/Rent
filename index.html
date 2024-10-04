@@ -68,20 +68,24 @@
             }
 
             let currentDate = startDate;
+            let totalDuration = (endDate - startDate) / (1000 * 60 * 60); // Общее время в часах
+
             while (currentDate < endDate) {
                 const dayName = currentDate.toLocaleString('ru-RU', { weekday: 'long' });
                 const dayData = data.find(d => d.day === dayName);
                 
                 if (dayData) {
                     const minHours = dayData.minHours;
+                    
+                    // Проверка выполнения минимального заказа для данного дня
+                    if (totalDuration < minHours) {
+                        document.getElementById('result').innerText = `Минимальный заказ: ${minHours} часов не выполнен.`;
+                        return;
+                    }
+
                     const startHour = (currentDate.getDate() === startDate.getDate()) ? startDate.getHours() : 0;
                     const endHour = (currentDate.getDate() === endDate.getDate()) ? endDate.getHours() : 24;
                     const totalHours = endHour - startHour;
-
-                    if (totalHours < minHours) {
-                        document.getElementById('result').innerText = "Минимальный заказ не выполнен.";
-                        return;
-                    }
 
                     for (let hour = startHour; hour < endHour; hour++) {
                         totalCost += dayData.rates[hour] || 0;
