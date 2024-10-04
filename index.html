@@ -110,15 +110,18 @@
 
                     if (dayData) {
                         const minHours = dayData.minHours;
+
+                        // Calculate the cost for each hour within the chosen period
                         const startHour = (currentDate.getTime() === startDate.getTime()) ? startDate.getHours() : 0;
                         const endHour = (currentDate.getTime() === endDate.getTime()) ? endDate.getHours() : 24;
-                        const totalHours = endHour - startHour;
-
-                        if (totalHours < minHours) {
-                            document.getElementById('result').innerText = "Минимальный заказ не выполнен.";
+                        
+                        // Check if the difference in hours is greater than or equal to the minimum required hours
+                        if (endHour - startHour < minHours) {
+                            document.getElementById('result').innerText = `Ошибка: Минимальный заказ не выполнен для ${dayName}.`;
                             return;
                         }
 
+                        // Add up the cost for each hour based on the hourly rates
                         for (let hour = startHour; hour < endHour; hour++) {
                             totalCost += dayData.rates[hour] || 0;
                         }
