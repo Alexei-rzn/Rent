@@ -67,37 +67,45 @@
                 return;
             }
 
-            let currentDate = new Date(startDate);
-            while (currentDate < endDate) {
-                const dayName = currentDate.toLocaleString('ru-RU', { weekday: 'long' });
-                const dayData = data.find(d => d.day === dayName);
+            // Рассчитываем общую длительность аренды в часах
+            const totalDuration = (endDate - startDate) / (1000 * 60 * 60); // Разница в часах
 
-                if (dayData) {
-                    const minHours = dayData.minHours;
+            // Определяем день начала аренды
+            const startDayName = startDate.toLocaleString('ru-RU', { weekday: 'long' });
+            const dayData = data.find(d => d.day === startDayName);
 
-                    // Рассчитываем начало и конец текущего дня
-                    const startHour = (currentDate.getDate() === startDate.getDate()) ? startDate.getHours() : 0;
-                    const endHour = (currentDate.getDate() === endDate.getDate()) ? endDate.getHours() : 24;
-                    const totalHours = endHour - startHour;
+            if (dayData) {
+                const minHours = dayData.minHours;
 
-                    // Проверяем минимальный заказ по времени аренды
-                    if (totalHours < minHours && currentDate.getDate() === startDate.getDate()) {
-                        document.getElementById('result').innerText = `Минимальный заказ: ${minHours} часов не выполнен.`;
-                        return;
-                    }
-
-                    // Добавляем стоимость по часам для текущего дня
-                    for (let hour = startHour; hour < endHour; hour++) {
-                        totalCost += dayData.rates[hour] || 0;
-                    }
+                // Проверка выполнения минимального заказа по дням
+                if (totalDuration < minHours) {
+                    document.getElementById('result').innerText = `Минимальный заказ: ${minHours} часов не выполнен.`;
+                    return;
                 }
 
-                // Переходим на следующий день
-                currentDate.setDate(currentDate.getDate() + 1);
-                currentDate.setHours(0);
-            }
+                // Проходим по часам с разбивкой по дням для расчета стоимости
+                let currentDate = new Date(startDate);
+                while (currentDate < endDate) {
+                    const currentDayName = currentDate.toLocaleString('ru-RU', { weekday: 'long' });
+                    const currentDayData = data.find(d => d.day === currentDayName);
 
-            document.getElementById('result').innerText = `Стоимость аренды: ${totalCost} руб.`;
+                    if (currentDayData) {
+                        const startHour = (currentDate.getDate() === startDate.getDate()) ? startDate.getHours() : 0;
+                        const endHour = (currentDate.getDate() === endDate.getDate()) ? endDate.getHours() : 24;
+
+                        for (let hour = startHour; hour < endHour; hour++) {
+                            totalCost += currentDayData.rates[hour] || 0;
+                        }
+                    }
+
+                    currentDate.setDate(currentDate.getDate() + 1);
+                    currentDate.setHours(0);
+                }
+
+                document.getElementById('result').innerText = `Стоимость аренды: ${totalCost} руб.`;
+            } else {
+                document.getElementById('result').innerText = "Ошибка: Невозможно определить минимальные часы для данного дня.";
+            }
         }
 
         // Fetch data on page load
