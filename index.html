@@ -8,62 +8,93 @@
         body {
             font-family: Arial, sans-serif;
             margin: 20px;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            max-width: 400px;
         }
-        input, button {
-            margin: 10px 0;
-            padding: 10px;
-            width: 100%;
+        h1 {
+            color: #333;
+        }
+        label {
+            display: block;
+            margin: 5px 0 2px;
+        }
+        input {
+            margin-bottom: 10px;
+        }
+        button {
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
     <h1>Калькулятор аренды</h1>
-    <label for="start-time">Выберите дату и время начала:</label>
-    <input type="datetime-local" id="start-time" required>
+    <label for="start_date">Дата начала:</label>
+    <input type="date" id="start_date" required>
+    <label for="start_time">Время начала:</label>
+    <input type="time" id="start_time" required>
     
-    <label for="end-time">Выберите дату и время окончания:</label>
-    <input type="datetime-local" id="end-time" required>
-
-    <button id="calculate">Проверить заказ</button>
-
-    <div id="result"></div>
+    <label for="end_date">Дата окончания:</label>
+    <input type="date" id="end_date" required>
+    <label for="end_time">Время окончания:</label>
+    <input type="time" id="end_time" required>
+    
+    <button onclick="calculateCost()">Рассчитать стоимость</button>
+    <h2 id="result"></h2>
 
     <script>
-        const MIN_HOURS_PER_ORDER = 3; // Минимальное количество часов для заказа
+        const sheetURL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRzVzUVVYfYPsMmI-_4EQk4K185C0dMqX6z65oJdfXq1cMdql0xYH5CFNbim5UjeFk60nJmg1kyII24/pub?output=csv';
 
-        document.getElementById('calculate').onclick = function() {
-            const startTimeInput = document.getElementById('start-time').value;
-            const endTimeInput = document.getElementById('end-time').value;
+        const data = [];
 
-            if (!startTimeInput || !endTimeInput) {
-                document.getElementById('result').innerText = 'Ошибка: Пожалуйста, выберите время начала и окончания.';
+        async function fetchData() {
+            const response = await fetch(sheetURL);
+            const csv = await response.text();
+            const rows = csv.split('\n').map(row => row.split(','));
+            
+            for (let i = 1; i < rows.length; i++) {
+                const day = rows[i][0];
+                const minHours = parseInt(rows[i][1]);
+                const rates = rows[i].slice(2).map(Number);
+                data.push({ day, minHours, rates });
+            }
+        }
+
+        function calculateCost() {
+            const startDate = new Date(document.getElementById('start_date').value + 'T' + document.getElementById('start_time').value);
+            const endDate = new Date(document.getElementById('end_date').value + 'T' + document.getElementById('end_time').value);
+            let totalCost = 0;
+
+            if (startDate >= endDate) {
+                document.getElementById('result').innerText = "Ошибка: Время окончания должно быть позже времени начала.";
                 return;
             }
 
-            const startTime = new Date(startTimeInput);
-            const endTime = new Date(endTimeInput);
-            const hoursDiff = (endTime - startTime) / (1000 * 60 * 60); // Разница в часах
+            let currentDate = startDate;
+            while (currentDate < endDate) {
+                const dayName = currentDate.toLocaleString('ru-RU', { weekday: 'long' });
+                const dayData = data.find(d => d.day === dayName);
+                
+                if (dayData) {
+                    const minHours = dayData.minHours;
+                    const startHour = (currentDate.getDate() === startDate.getDate()) ? startDate.getHours() : 0;
+                    const endHour = (currentDate.getDate() === endDate.getDate()) ? endDate.getHours() : 24;
+                    const totalHours = endHour - startHour;
 
-            if (hoursDiff < MIN_HOURS_PER_ORDER) {
-                // Определяем минимальное время окончания, если заказ меньше минимального
-                const minEndTime = new Date(startTime.getTime() + MIN_HOURS_PER_ORDER * 60 * 60 * 1000);
-                const minEndTimeString = minEndTime.toLocaleString('ru-RU', {
-                    weekday: 'long',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+                    if (totalHours < minHours) {
+                        document.getElementById('result').innerText = "Минимальный заказ не выполнен.";
+                        return;
+                    }
 
-                document.getElementById('result').innerText = 
-                    `Ошибка: Минимальный заказ составляет ${MIN_HOURS_PER_ORDER} часа(ов). ` +
-                    `Заказ должен быть до ${minEndTimeString}.`;
-            } else {
-                document.getElementById('result').innerText = 'Заказ принят!';
+                    for (let hour = startHour; hour < endHour; hour++) {
+                        totalCost += dayData.rates[hour] || 0;
+                    }
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
             }
+
+            document.getElementById('result').innerText = `Стоимость аренды: ${totalCost} руб.`;
         }
+
+        // Fetch data on page load
+        fetchData();
     </script>
 </body>
 </html>
