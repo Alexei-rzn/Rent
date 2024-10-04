@@ -103,15 +103,15 @@
                     return;
                 }
 
-                let currentDate = startDate;
+                let currentDate = new Date(startDate);
                 while (currentDate < endDate) {
                     const dayName = currentDate.toLocaleString('ru-RU', { weekday: 'long' });
                     const dayData = data.find(d => d.day === dayName);
 
                     if (dayData) {
                         const minHours = dayData.minHours;
-                        const startHour = (currentDate.getDate() === startDate.getDate()) ? startDate.getHours() : 0;
-                        const endHour = (currentDate.getDate() === endDate.getDate()) ? endDate.getHours() : 24;
+                        const startHour = (currentDate.getTime() === startDate.getTime()) ? startDate.getHours() : 0;
+                        const endHour = (currentDate.getTime() === endDate.getTime()) ? endDate.getHours() : 24;
                         const totalHours = endHour - startHour;
 
                         if (totalHours < minHours) {
